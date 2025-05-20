@@ -60,15 +60,6 @@ export async function closeBottle(name: string): Promise<void> {
   await runAppleScript(script);
 }
 
-export async function quitCrossOver(): Promise<void> {
-  const script = `
-    tell application "CrossOver"
-      quit saving yes
-    end tell
-  `;
-  await runAppleScript(script);
-}
-
 export async function focusBottle(name: string): Promise<void> {
   const script = `
     tell application "CrossOver"

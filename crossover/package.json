@@ -24,13 +24,6 @@
       "subtitle": "CrossOver",
       "description": "Open a CrossOver bottle file.",
       "mode": "no-view"
-    },
-    {
-      "name": "quit-crossover",
-      "title": "Quit CrossOver",
-      "subtitle": "CrossOver",
-      "description": "Quit CrossOver application.",
-      "mode": "no-view"
     }
   ],
   "dependencies": {
