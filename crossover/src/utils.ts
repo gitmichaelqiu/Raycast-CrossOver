@@ -19,13 +19,42 @@ export async function listBottles(): Promise<Bottle[]> {
     tell application "CrossOver"
       try
         set bottleList to {}
-        set docList to every document
-        repeat with doc in docList
-          set bottleName to name of doc
-          set bottlePath to path of doc
-          set bottleModified to modified of doc
-          set end of bottleList to {name:bottleName, path:bottlePath, modified:bottleModified}
-        end repeat
+        
+        -- Try to get bottles through different methods
+        try
+          -- Method 1: Direct document access
+          set docList to every document
+          repeat with doc in docList
+            set bottleName to name of doc
+            set bottlePath to path of doc
+            set bottleModified to modified of doc
+            set end of bottleList to {name:bottleName, path:bottlePath, modified:bottleModified}
+          end repeat
+        end try
+        
+        -- If no bottles found, try alternative methods
+        if bottleList is {} then
+          -- Method 2: Try to get bottles through windows
+          set winList to every window
+          repeat with win in winList
+            set bottleName to name of win
+            set bottlePath to path of win
+            set bottleModified to modified of win
+            set end of bottleList to {name:bottleName, path:bottlePath, modified:bottleModified}
+          end repeat
+        end if
+        
+        -- If still no bottles, try to get the Windows 10 bottle directly
+        if bottleList is {} then
+          try
+            set win10Bottle to document "Windows 10"
+            set end of bottleList to {name:"Windows 10", path:path of win10Bottle, modified:modified of win10Bottle}
+          end try
+        end if
+        
+        -- Debug output
+        log "Found bottles: " & bottleList
+        
         return bottleList
       on error errMsg
         return "Error: " & errMsg
