@@ -1,3 +1,4 @@
+import React from "react";
 import { List, ActionPanel, Action, showToast, Toast } from "@raycast/api";
 import { listBottles, Bottle, closeBottle, focusBottle } from "./utils";
 import { useEffect, useState } from "react";
@@ -82,4 +83,4 @@ export default function Command() {
       ))}
     </List>
   );
-}
+} 

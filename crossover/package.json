@@ -16,14 +16,16 @@
       "title": "List all bottles",
       "subtitle": "CrossOver",
       "description": "List all bottles of CrossOver.",
-      "mode": "view"
+      "mode": "view",
+      "file": "src/list-all-bottles.tsx"
     },
     {
       "name": "open-bottle",
       "title": "Open bottle",
       "subtitle": "CrossOver",
       "description": "Open a CrossOver bottle file.",
-      "mode": "no-view"
+      "mode": "no-view",
+      "file": "src/open-bottle.ts"
     }
   ],
   "dependencies": {

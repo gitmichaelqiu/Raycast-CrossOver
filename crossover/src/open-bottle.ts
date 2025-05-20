@@ -1,4 +1,4 @@
-import { open } from "@raycast/api";
+import { showToast, Toast, open } from "@raycast/api";
 import { openBottle } from "./utils";
 
 export default async function Command() {
@@ -10,8 +10,17 @@ export default async function Command() {
 
     if (selectedFile) {
       await openBottle(selectedFile);
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Opened bottle",
+        message: selectedFile,
+      });
     }
   } catch (error) {
-    console.error("Failed to open bottle:", error);
+    await showToast({
+      style: Toast.Style.Failure,
+      title: "Failed to open bottle",
+      message: String(error),
+    });
   }
 } 
