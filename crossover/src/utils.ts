@@ -17,29 +17,63 @@ export async function runAppleScript(script: string): Promise<string> {
 export async function listBottles(): Promise<Bottle[]> {
   const script = `
     tell application "CrossOver"
-      set bottleList to {}
-      repeat with doc in documents
-        set end of bottleList to {name:name of doc, path:path of doc, modified:modified of doc}
-      end repeat
-      return bottleList
+      try
+        set bottleList to {}
+        set docList to every document
+        repeat with doc in docList
+          set bottleName to name of doc
+          set bottlePath to path of doc
+          set bottleModified to modified of doc
+          set end of bottleList to {name:bottleName, path:bottlePath, modified:bottleModified}
+        end repeat
+        return bottleList
+      on error errMsg
+        return "Error: " & errMsg
+      end try
     end tell
   `;
   
-  const result = await runAppleScript(script);
-  // Parse the AppleScript result into Bottle objects
-  // Note: This is a simplified parser, might need adjustment based on actual output format
-  const bottles: Bottle[] = [];
-  const lines = result.split(", ");
-  for (let i = 0; i < lines.length; i += 3) {
-    if (i + 2 < lines.length) {
-      bottles.push({
-        name: lines[i].replace("name:", ""),
-        path: lines[i + 1].replace("path:", ""),
-        modified: lines[i + 2].replace("modified:", "") === "true"
-      });
+  try {
+    const result = await runAppleScript(script);
+    console.log("Raw AppleScript result:", result); // Debug log
+
+    // Handle error message
+    if (result.startsWith("Error:")) {
+      throw new Error(result);
     }
+
+    // Handle empty result
+    if (!result || result === "") {
+      console.log("No bottles found or empty result");
+      return [];
+    }
+
+    // Parse the AppleScript result into Bottle objects
+    const bottles: Bottle[] = [];
+    const lines = result.split(", ");
+    console.log("Split lines:", lines); // Debug log
+
+    for (let i = 0; i < lines.length; i += 3) {
+      if (i + 2 < lines.length) {
+        const name = lines[i].replace("name:", "").trim();
+        const path = lines[i + 1].replace("path:", "").trim();
+        const modified = lines[i + 2].replace("modified:", "").trim() === "true";
+
+        console.log("Parsed bottle:", { name, path, modified }); // Debug log
+
+        bottles.push({
+          name,
+          path,
+          modified
+        });
+      }
+    }
+
+    return bottles;
+  } catch (error) {
+    console.error("Error in listBottles:", error);
+    throw error;
   }
-  return bottles;
 }
 
 export async function openBottle(path: string): Promise<void> {
