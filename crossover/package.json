@@ -16,6 +16,20 @@
       "title": "List all bottles",
       "subtitle": "CrossOver",
       "description": "List all bottles of CrossOver.",
+      "mode": "view"
+    },
+    {
+      "name": "open-bottle",
+      "title": "Open bottle",
+      "subtitle": "CrossOver",
+      "description": "Open a CrossOver bottle file.",
+      "mode": "no-view"
+    },
+    {
+      "name": "quit-crossover",
+      "title": "Quit CrossOver",
+      "subtitle": "CrossOver",
+      "description": "Quit CrossOver application.",
       "mode": "no-view"
     }
   ],
