@@ -1,5 +1,8 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import { homedir } from "os";
+import { readdir } from "fs/promises";
+import { join } from "path";
 
 const execAsync = promisify(exec);
 
@@ -15,109 +18,69 @@ export async function runAppleScript(script: string): Promise<string> {
 }
 
 export async function listBottles(): Promise<Bottle[]> {
-  const script = `
-    tell application "CrossOver"
-      try
-        set bottleList to {}
-        
-        -- Try to get bottles through different methods
-        try
-          -- Method 1: Direct document access
-          set docList to every document
-          repeat with doc in docList
-            set bottleName to name of doc
-            set bottlePath to path of doc
-            set bottleModified to modified of doc
-            set end of bottleList to {name:bottleName, path:bottlePath, modified:bottleModified}
-          end repeat
-        end try
-        
-        -- If no bottles found, try alternative methods
-        if bottleList is {} then
-          -- Method 2: Try to get bottles through windows
-          set winList to every window
-          repeat with win in winList
-            set bottleName to name of win
-            set bottlePath to path of win
-            set bottleModified to modified of win
-            set end of bottleList to {name:bottleName, path:bottlePath, modified:bottleModified}
-          end repeat
-        end if
-        
-        -- If still no bottles, try to get the Windows 10 bottle directly
-        if bottleList is {} then
-          try
-            set win10Bottle to document "Windows 10"
-            set end of bottleList to {name:"Windows 10", path:path of win10Bottle, modified:modified of win10Bottle}
-          end try
-        end if
-        
-        -- Debug output
-        log "Found bottles: " & bottleList
-        
-        return bottleList
-      on error errMsg
-        return "Error: " & errMsg
-      end try
-    end tell
-  `;
-  
   try {
-    const result = await runAppleScript(script);
-    console.log("Raw AppleScript result:", result); // Debug log
+    // Get the bottles directory path
+    const bottlesDir = join(homedir(), "Library/Application Support/CrossOver/Bottles");
+    
+    // Read the bottles directory
+    const bottleNames = await readdir(bottlesDir);
+    console.log("Found bottles:", bottleNames);
 
-    // Handle error message
-    if (result.startsWith("Error:")) {
-      throw new Error(result);
-    }
+    // Convert to Bottle objects
+    const bottles: Bottle[] = bottleNames.map(name => ({
+      name,
+      path: join(bottlesDir, name),
+      modified: false // We'll need to check this separately
+    }));
 
-    // Handle empty result
-    if (!result || result === "") {
-      console.log("No bottles found or empty result");
-      return [];
-    }
+    // Check which bottles are currently running using AppleScript
+    const script = `
+      tell application "System Events"
+        tell process "CrossOver"
+          set winList to every window
+          set runningBottles to {}
+          repeat with win in winList
+            set winName to name of win
+            if winName is not "CrossOver" then
+              set end of runningBottles to winName
+            end if
+          end repeat
+          return runningBottles
+        end tell
+      end tell
+    `;
 
-    // Parse the AppleScript result into Bottle objects
-    const bottles: Bottle[] = [];
-    const lines = result.split(", ");
-    console.log("Split lines:", lines); // Debug log
-
-    for (let i = 0; i < lines.length; i += 3) {
-      if (i + 2 < lines.length) {
-        const name = lines[i].replace("name:", "").trim();
-        const path = lines[i + 1].replace("path:", "").trim();
-        const modified = lines[i + 2].replace("modified:", "").trim() === "true";
-
-        console.log("Parsed bottle:", { name, path, modified }); // Debug log
-
-        bottles.push({
-          name,
-          path,
-          modified
-        });
-      }
+    try {
+      const runningBottles = await runAppleScript(script);
+      const runningBottleNames = runningBottles.split(", ").map(name => name.trim());
+      
+      // Update the modified status for running bottles
+      bottles.forEach(bottle => {
+        bottle.modified = runningBottleNames.includes(bottle.name);
+      });
+    } catch (error) {
+      console.error("Error getting running bottles:", error);
     }
 
     return bottles;
   } catch (error) {
-    console.error("Error in listBottles:", error);
+    console.error("Error listing bottles:", error);
     throw error;
   }
 }
 
 export async function openBottle(path: string): Promise<void> {
-  const script = `
-    tell application "CrossOver"
-      open "${path}"
-    end tell
-  `;
+  const script = `tell application "CrossOver" to open "${path}"`;
   await runAppleScript(script);
 }
 
 export async function closeBottle(name: string): Promise<void> {
   const script = `
-    tell application "CrossOver"
-      close document "${name}" saving yes
+    tell application "System Events"
+      tell process "CrossOver"
+        set frontmost to true
+        click button 1 of window "${name}"
+      end tell
     end tell
   `;
   await runAppleScript(script);
@@ -125,8 +88,11 @@ export async function closeBottle(name: string): Promise<void> {
 
 export async function focusBottle(name: string): Promise<void> {
   const script = `
-    tell application "CrossOver"
-      set frontmost of window "${name}" to true
+    tell application "System Events"
+      tell process "CrossOver"
+        set frontmost to true
+        set frontmost of window "${name}" to true
+      end tell
     end tell
   `;
   await runAppleScript(script);
