@@ -1,6 +1,6 @@
 import React from "react";
-import { List, ActionPanel, Action, showToast, Toast } from "@raycast/api";
-import { listBottles, Bottle, closeBottle, focusBottle } from "./utils";
+import { List, ActionPanel, Action, showToast, Toast, open } from "@raycast/api";
+import { listBottles, Bottle, focusBottle } from "./utils";
 import { useEffect, useState } from "react";
 
 export default function Command() {
@@ -39,43 +39,9 @@ export default function Command() {
           actions={
             <ActionPanel>
               <Action
-                title="Focus Bottle"
-                onAction={async () => {
-                  try {
-                    await focusBottle(bottle.name);
-                    await showToast({
-                      style: Toast.Style.Success,
-                      title: "Focused bottle",
-                      message: bottle.name,
-                    });
-                  } catch (error) {
-                    await showToast({
-                      style: Toast.Style.Failure,
-                      title: "Failed to focus bottle",
-                      message: String(error),
-                    });
-                  }
-                }}
-              />
-              <Action
-                title="Close Bottle"
-                onAction={async () => {
-                  try {
-                    await closeBottle(bottle.name);
-                    setBottles(bottles.filter((b) => b.path !== bottle.path));
-                    await showToast({
-                      style: Toast.Style.Success,
-                      title: "Closed bottle",
-                      message: bottle.name,
-                    });
-                  } catch (error) {
-                    await showToast({
-                      style: Toast.Style.Failure,
-                      title: "Failed to close bottle",
-                      message: String(error),
-                    });
-                  }
-                }}
+                title="Open Bottle Directory"
+                shortcut={{ modifiers: ["cmd"], key: "return" }}
+                onAction={() => open(bottle.path)}
               />
             </ActionPanel>
           }

@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import { homedir } from "os";
-import { readdir } from "fs/promises";
+import { readdir, stat } from "fs/promises";
 import { join } from "path";
 
 const execAsync = promisify(exec);
@@ -23,11 +23,23 @@ export async function listBottles(): Promise<Bottle[]> {
     const bottlesDir = join(homedir(), "Library/Application Support/CrossOver/Bottles");
     
     // Read the bottles directory
-    const bottleNames = await readdir(bottlesDir);
-    console.log("Found bottles:", bottleNames);
+    const items = await readdir(bottlesDir);
+    
+    // Filter out non-directory items
+    const bottleNames = await Promise.all(
+      items.map(async (name) => {
+        const fullPath = join(bottlesDir, name);
+        const stats = await stat(fullPath);
+        return stats.isDirectory() ? name : null;
+      })
+    );
+    
+    // Remove null values and log found bottles
+    const validBottleNames = bottleNames.filter((name): name is string => name !== null);
+    console.log("Found bottles:", validBottleNames);
 
     // Convert to Bottle objects
-    const bottles: Bottle[] = bottleNames.map(name => ({
+    const bottles: Bottle[] = validBottleNames.map(name => ({
       name,
       path: join(bottlesDir, name),
       modified: false // We'll need to check this separately
