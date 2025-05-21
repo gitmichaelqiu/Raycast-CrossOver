@@ -35,32 +35,3 @@ export async function listBottles(): Promise<Bottle[]> {
     throw error;
   }
 }
-
-export async function openBottle(path: string): Promise<void> {
-  const script = `tell application "CrossOver" to open "${path}"`;
-  await runAppleScript(script);
-}
-
-export async function closeBottle(name: string): Promise<void> {
-  const script = `
-    tell application "System Events"
-      tell process "CrossOver"
-        set frontmost to true
-        click button 1 of window "${name}"
-      end tell
-    end tell
-  `;
-  await runAppleScript(script);
-}
-
-export async function focusBottle(name: string): Promise<void> {
-  const script = `
-    tell application "System Events"
-      tell process "CrossOver"
-        set frontmost to true
-        set frontmost of window "${name}" to true
-      end tell
-    end tell
-  `;
-  await runAppleScript(script);
-} 
