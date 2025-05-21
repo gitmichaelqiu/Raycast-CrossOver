@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import { homedir } from "os";
-import { readdir, stat } from "fs/promises";
+import { readdir } from "fs/promises";
 import { join } from "path";
 
 const execAsync = promisify(exec);
@@ -12,68 +12,23 @@ export interface Bottle {
   modified: boolean;
 }
 
-export async function runAppleScript(script: string): Promise<string> {
-  const { stdout } = await execAsync(`osascript -e '${script}'`);
-  return stdout.trim();
-}
-
 export async function listBottles(): Promise<Bottle[]> {
+  const bottlesDir = join(homedir(), "Library/Application Support/CrossOver/Bottles");
+  console.log("Scanning bottles directory:", bottlesDir);
+  
   try {
-    // Get the bottles directory path
-    const bottlesDir = join(homedir(), "Library/Application Support/CrossOver/Bottles");
+    const entries = await readdir(bottlesDir, { withFileTypes: true });
+    console.log("Found entries:", entries.map(e => e.name));
     
-    // Read the bottles directory
-    const items = await readdir(bottlesDir);
+    const bottles = entries
+      .filter(entry => entry.isDirectory())
+      .map(entry => ({
+        name: entry.name,
+        path: join(bottlesDir, entry.name),
+        modified: false // We'll keep this for future use if needed
+      }));
     
-    // Filter out non-directory items
-    const bottleNames = await Promise.all(
-      items.map(async (name) => {
-        const fullPath = join(bottlesDir, name);
-        const stats = await stat(fullPath);
-        return stats.isDirectory() ? name : null;
-      })
-    );
-    
-    // Remove null values and log found bottles
-    const validBottleNames = bottleNames.filter((name): name is string => name !== null);
-    console.log("Found bottles:", validBottleNames);
-
-    // Convert to Bottle objects
-    const bottles: Bottle[] = validBottleNames.map(name => ({
-      name,
-      path: join(bottlesDir, name),
-      modified: false // We'll need to check this separately
-    }));
-
-    // Check which bottles are currently running using AppleScript
-    const script = `
-      tell application "System Events"
-        tell process "CrossOver"
-          set winList to every window
-          set runningBottles to {}
-          repeat with win in winList
-            set winName to name of win
-            if winName is not "CrossOver" then
-              set end of runningBottles to winName
-            end if
-          end repeat
-          return runningBottles
-        end tell
-      end tell
-    `;
-
-    try {
-      const runningBottles = await runAppleScript(script);
-      const runningBottleNames = runningBottles.split(", ").map(name => name.trim());
-      
-      // Update the modified status for running bottles
-      bottles.forEach(bottle => {
-        bottle.modified = runningBottleNames.includes(bottle.name);
-      });
-    } catch (error) {
-      console.error("Error getting running bottles:", error);
-    }
-
+    console.log("Found bottles:", bottles);
     return bottles;
   } catch (error) {
     console.error("Error listing bottles:", error);
