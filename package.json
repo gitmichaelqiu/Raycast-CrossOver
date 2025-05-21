@@ -18,6 +18,14 @@
       "description": "List all bottles of CrossOver.",
       "mode": "view",
       "file": "src/list-all-bottles.tsx"
+    },
+    {
+      "name": "copy-program-to-bottle",
+      "title": "Copy Program to Bottle",
+      "subtitle": "CrossOver",
+      "description": "Copy a program folder to a bottle and add a shortcut.",
+      "mode": "view",
+      "file": "src/copy-program-to-bottle.tsx"
     }
   ],
   "dependencies": {
