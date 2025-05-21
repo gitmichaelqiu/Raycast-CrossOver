@@ -1,6 +1,6 @@
 import React from "react";
 import { List, ActionPanel, Action, showToast, Toast, confirmAlert, Icon, open, Color } from "@raycast/api";
-import { listBottles, Bottle, changeGraphicsBackend, GraphicsBackend } from "./utils";
+import { listBottles, Bottle, changeGraphicsBackend, GraphicsBackend, changeSyncMode, SyncMode } from "./utils";
 import { useEffect, useState } from "react";
 import { rm } from "fs/promises";
 import { join } from "path";
@@ -67,6 +67,23 @@ export default function Command() {
     }
   }
 
+  async function handleSyncModeChange(bottle: Bottle, mode: SyncMode) {
+    try {
+      await changeSyncMode(bottle.path, mode);
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Synchronization changed",
+        message: `Changed to ${mode} for ${bottle.name}`,
+      });
+    } catch (error) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to change synchronization",
+        message: String(error),
+      });
+    }
+  }
+
   return (
     <List isLoading={isLoading}>
       {bottles.map((bottle) => (
@@ -109,6 +126,24 @@ export default function Command() {
                 <Action
                   title="Wine"
                   onAction={() => handleGraphicsBackendChange(bottle, "Wine")}
+                />
+              </ActionPanel.Submenu>
+              <ActionPanel.Submenu
+                title="Change Synchronization"
+                icon={Icon.ArrowClockwise}
+                shortcut={{ modifiers: ["cmd"], key: "s" }}
+              >
+                <Action
+                  title="Default"
+                  onAction={() => handleSyncModeChange(bottle, "Default")}
+                />
+                <Action
+                  title="ESync"
+                  onAction={() => handleSyncModeChange(bottle, "ESync")}
+                />
+                <Action
+                  title="MSync"
+                  onAction={() => handleSyncModeChange(bottle, "MSync")}
                 />
               </ActionPanel.Submenu>
               <Action

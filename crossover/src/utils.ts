@@ -13,6 +13,7 @@ export interface Bottle {
 }
 
 export type GraphicsBackend = "Auto" | "D3DMetal" | "DXMT" | "DXVK" | "Wine";
+export type SyncMode = "Default" | "ESync" | "MSync";
 
 export async function listBottles(): Promise<Bottle[]> {
   const bottlesDir = join(homedir(), "Library/Application Support/CrossOver/Bottles");
@@ -79,6 +80,62 @@ export async function changeGraphicsBackend(bottlePath: string, backend: Graphic
     await writeFile(configPath, newConfig, 'utf-8');
   } catch (error) {
     console.error("Error changing graphics backend:", error);
+    throw error;
+  }
+}
+
+export async function changeSyncMode(bottlePath: string, mode: SyncMode): Promise<void> {
+  const configPath = join(bottlePath, "cxbottle.conf");
+  
+  try {
+    // Read the current configuration
+    const configContent = await readFile(configPath, 'utf-8');
+    
+    // Map the sync mode to its configuration values
+    const syncValues = {
+      "Default": { WINEESYNC: "0", WINEMSYNC: "0" },
+      "ESync": { WINEESYNC: "1", WINEMSYNC: "0" },
+      "MSync": { WINEESYNC: "0", WINEMSYNC: "1" }
+    }[mode];
+
+    // Check if the EnvironmentVariables section exists
+    if (!configContent.includes("[EnvironmentVariables]")) {
+      throw new Error("Configuration file is missing the EnvironmentVariables section");
+    }
+
+    // Update or add the sync settings
+    let newConfig = configContent;
+    
+    // Update WINEESYNC
+    if (configContent.includes('"WINEESYNC"')) {
+      newConfig = newConfig.replace(
+        /"WINEESYNC"\s*=\s*"[^"]*"/,
+        `"WINEESYNC" = "${syncValues.WINEESYNC}"`
+      );
+    } else {
+      newConfig = newConfig.replace(
+        /\[EnvironmentVariables\]/,
+        `[EnvironmentVariables]\n"WINEESYNC" = "${syncValues.WINEESYNC}"`
+      );
+    }
+
+    // Update WINEMSYNC
+    if (configContent.includes('"WINEMSYNC"')) {
+      newConfig = newConfig.replace(
+        /"WINEMSYNC"\s*=\s*"[^"]*"/,
+        `"WINEMSYNC" = "${syncValues.WINEMSYNC}"`
+      );
+    } else {
+      newConfig = newConfig.replace(
+        /\[EnvironmentVariables\]/,
+        `[EnvironmentVariables]\n"WINEMSYNC" = "${syncValues.WINEMSYNC}"`
+      );
+    }
+
+    // Write the updated configuration
+    await writeFile(configPath, newConfig, 'utf-8');
+  } catch (error) {
+    console.error("Error changing sync mode:", error);
     throw error;
   }
 }
