@@ -26,6 +26,14 @@
       "description": "Restart the CrossOver application.",
       "mode": "no-view",
       "file": "src/restart-crossover.tsx"
+    },
+    {
+      "name": "move-program-to-bottle",
+      "title": "Move Program to Bottle",
+      "subtitle": "CrossOver",
+      "description": "Move a program folder to a bottle and add a shortcut.",
+      "mode": "view",
+      "file": "src/move-program-to-bottle.tsx"
     }
   ],
   "dependencies": {
