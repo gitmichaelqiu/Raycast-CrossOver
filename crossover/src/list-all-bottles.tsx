@@ -92,7 +92,7 @@ export default function Command() {
           title={bottle.name}
           subtitle={bottle.path}
           accessories={[
-            { text: bottle.modified ? "Modified" : "Unmodified" }
+            { text: bottle.windowsVersion || "Unknown Windows Version" }
           ]}
           actions={
             <ActionPanel>

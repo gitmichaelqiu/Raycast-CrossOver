@@ -10,6 +10,7 @@ export interface Bottle {
   name: string;
   path: string;
   modified: boolean;
+  windowsVersion?: string;
 }
 
 export type GraphicsBackend = "Auto" | "D3DMetal" | "DXMT" | "DXVK" | "Wine";
@@ -23,12 +24,29 @@ export async function listBottles(): Promise<Bottle[]> {
     const entries = await readdir(bottlesDir, { withFileTypes: true });
     console.log("Found entries:", entries.map(e => e.name));
     
-    const bottles = entries
+    const bottles = await Promise.all(entries
       .filter(entry => entry.isDirectory())
-      .map(entry => ({
-        name: entry.name,
-        path: join(bottlesDir, entry.name),
-        modified: false // We'll keep this for future use if needed
+      .map(async entry => {
+        const bottlePath = join(bottlesDir, entry.name);
+        const configPath = join(bottlePath, "cxbottle.conf");
+        
+        let windowsVersion: string | undefined;
+        try {
+          const configContent = await readFile(configPath, 'utf-8');
+          const match = configContent.match(/"WindowsVersion"\s*=\s*"([^"]*)"/);
+          if (match) {
+            windowsVersion = match[1];
+          }
+        } catch (error) {
+          console.error(`Error reading config for ${entry.name}:`, error);
+        }
+
+        return {
+          name: entry.name,
+          path: bottlePath,
+          modified: false,
+          windowsVersion
+        };
       }));
     
     console.log("Found bottles:", bottles);
