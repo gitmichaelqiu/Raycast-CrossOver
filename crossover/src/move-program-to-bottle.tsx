@@ -1,19 +1,39 @@
-import { Form, ActionPanel, Action, showToast, Toast } from "@raycast/api";
+import { Form, ActionPanel, Action, showToast, Toast, useNavigation, Clipboard } from "@raycast/api";
 import { listBottles } from "./utils";
 import { useEffect, useState } from "react";
 import { join, basename } from "path";
-import { copyFile, mkdir, readdir, writeFile, readFile, access } from "fs/promises";
+import { copyFile, mkdir, readdir, access } from "fs/promises";
 
 interface FormValues {
   bottle: string;
   folder: string;
 }
 
+async function findMainExecutable(dir: string): Promise<{ name: string; path: string } | null> {
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const exeFiles = entries.filter(entry => 
+      entry.isFile() && entry.name.toLowerCase().endsWith('.exe')
+    );
+
+    if (exeFiles.length === 0) {
+      return null;
+    }
+
+    const exeFile = exeFiles[0];
+    return {
+      name: exeFile.name,
+      path: join(dir, exeFile.name)
+    };
+  } catch (error) {
+    console.error("Error finding executable:", error);
+    return null;
+  }
+}
+
 async function moveFolderRecursive(src: string, dest: string) {
   try {
-    // Check if source exists and is accessible
     await access(src);
-    
     await mkdir(dest, { recursive: true });
     const entries = await readdir(src, { withFileTypes: true });
     
@@ -35,40 +55,8 @@ async function moveFolderRecursive(src: string, dest: string) {
   }
 }
 
-async function addShortcutToBottle(bottlePath: string, programFolderName: string, exeName: string) {
-  try {
-    const cxmenuPath = join(bottlePath, "cxmenu.conf");
-    let cxmenuContent = "";
-    
-    try {
-      cxmenuContent = await readFile(cxmenuPath, "utf-8");
-    } catch (error) {
-      console.log(`Creating new cxmenu.conf file at ${cxmenuPath}`);
-      cxmenuContent = "";
-    }
-    
-    const shortcutSection = `[StartMenu.C^3A_users_crossover_AppData_Roaming_Microsoft_Windows_Start+Menu/${exeName}.lnk]`;
-    const shortcutBlock = `${shortcutSection}
-"Type" = "windows"
-"Icon" = "${exeName}.0"
-"Shortcut" = "${exeName}"
-"Mode" = "install"
-"Arch" = "x86_64"
-`;
-    
-    if (!cxmenuContent.includes(shortcutSection)) {
-      cxmenuContent += `\n${shortcutBlock}`;
-      await writeFile(cxmenuPath, cxmenuContent, "utf-8");
-      console.log(`Added shortcut for ${exeName} to ${cxmenuPath}`);
-    } else {
-      console.log(`Shortcut for ${exeName} already exists in ${cxmenuPath}`);
-    }
-  } catch (error) {
-    throw new Error(`Failed to add shortcut: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
 export default function Command() {
+  const { pop } = useNavigation();
   const [bottles, setBottles] = useState<{ name: string; path: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -108,7 +96,6 @@ export default function Command() {
 
       const programFolder = values.folder;
       
-      // Check if the program folder exists
       try {
         await access(programFolder);
         console.log(`Program folder exists: ${programFolder}`);
@@ -116,7 +103,6 @@ export default function Command() {
         throw new Error(`Program folder not found: ${programFolder}`);
       }
 
-      // Show progress toast
       await showToast({
         style: Toast.Style.Animated,
         title: "Moving program...",
@@ -126,26 +112,28 @@ export default function Command() {
       const programFolderName = basename(programFolder);
       const destDir = join(bottle.path, "drive_c", "Program Files", programFolderName);
       
-      // Move the folder
       await moveFolderRecursive(programFolder, destDir);
       console.log(`Successfully moved folder to ${destDir}`);
       
-      // Find the main executable
-      const files = await readdir(destDir);
-      console.log("Files in destination:", files);
+      const exeInfo = await findMainExecutable(destDir);
+      if (!exeInfo) {
+        throw new Error("No executable file found in the program folder");
+      }
       
-      const exeName = files.find((f) => f.endsWith(".exe")) || programFolderName;
-      console.log(`Using executable name: ${exeName}`);
+      console.log("Found executable:", exeInfo);
       
-      // Add shortcut
-      await addShortcutToBottle(bottle.path, programFolderName, exeName);
+      // Copy the command path to clipboard
+      const commandPath = `"${exeInfo.path}"`;
+      await Clipboard.copy(commandPath);
       
-      // Show success toast
       await showToast({
         style: Toast.Style.Success,
         title: "Success",
-        message: `Program moved to ${bottle.name} and shortcut added`,
+        message: "Program moved and command path copied to clipboard",
       });
+      
+      // Close the window after successful execution
+      pop();
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       await showToast({
