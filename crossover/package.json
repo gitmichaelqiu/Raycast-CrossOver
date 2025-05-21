@@ -28,12 +28,12 @@
       "file": "src/restart-crossover.tsx"
     },
     {
-      "name": "move-program-to-bottle",
-      "title": "Move Program to Bottle",
+      "name": "copy-program-to-bottle",
+      "title": "Copy Program to Bottle",
       "subtitle": "CrossOver",
-      "description": "Move a program folder to a bottle and add a shortcut.",
+      "description": "Copy a program folder to a bottle and add a shortcut.",
       "mode": "view",
-      "file": "src/move-program-to-bottle.tsx"
+      "file": "src/copy-program-to-bottle.tsx"
     }
   ],
   "dependencies": {

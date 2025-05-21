@@ -6,7 +6,7 @@ import { copyFile, mkdir, readdir, access } from "fs/promises";
 
 interface FormValues {
   bottle: string;
-  folder: string;
+  folder: string[];
 }
 
 async function findMainExecutable(dir: string): Promise<{ name: string; path: string } | null> {
@@ -31,7 +31,7 @@ async function findMainExecutable(dir: string): Promise<{ name: string; path: st
   }
 }
 
-async function moveFolderRecursive(src: string, dest: string) {
+async function copyFolderRecursive(src: string, dest: string) {
   try {
     await access(src);
     await mkdir(dest, { recursive: true });
@@ -45,13 +45,13 @@ async function moveFolderRecursive(src: string, dest: string) {
       const srcPath = join(src, entry.name);
       const destPath = join(dest, entry.name);
       if (entry.isDirectory()) {
-        await moveFolderRecursive(srcPath, destPath);
+        await copyFolderRecursive(srcPath, destPath);
       } else {
         await copyFile(srcPath, destPath);
       }
     }
   } catch (error) {
-    throw new Error(`Failed to move folder: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to copy folder: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -85,8 +85,8 @@ export default function Command() {
       if (!values.bottle) {
         throw new Error("Please select a bottle");
       }
-      if (!values.folder) {
-        throw new Error("Please enter a program folder path");
+      if (!values.folder || values.folder.length === 0) {
+        throw new Error("Please select a program folder");
       }
 
       const bottle = bottles.find((b) => b.name === values.bottle);
@@ -94,8 +94,7 @@ export default function Command() {
         throw new Error(`Bottle "${values.bottle}" not found`);
       }
 
-      const programFolder = values.folder;
-      
+      const programFolder = values.folder[0];
       try {
         await access(programFolder);
         console.log(`Program folder exists: ${programFolder}`);
@@ -112,8 +111,8 @@ export default function Command() {
       const programFolderName = basename(programFolder);
       const destDir = join(bottle.path, "drive_c", "Program Files", programFolderName);
       
-      await moveFolderRecursive(programFolder, destDir);
-      console.log(`Successfully moved folder to ${destDir}`);
+      await copyFolderRecursive(programFolder, destDir);
+      console.log(`Successfully copied folder to ${destDir}`);
       
       const exeInfo = await findMainExecutable(destDir);
       if (!exeInfo) {
@@ -129,7 +128,7 @@ export default function Command() {
       await showToast({
         style: Toast.Style.Success,
         title: "Success",
-        message: "Program moved and command path copied to clipboard",
+        message: "Program copied to bottle and command path copied to clipboard",
       });
       
       // Close the window after successful execution
@@ -138,7 +137,7 @@ export default function Command() {
       console.error("Error in handleSubmit:", error);
       await showToast({
         style: Toast.Style.Failure,
-        title: "Failed to move program",
+        title: "Failed to copy program",
         message: error instanceof Error ? error.message : String(error),
       });
     }
@@ -150,7 +149,7 @@ export default function Command() {
       actions={
         <ActionPanel>
           <Action.SubmitForm 
-            title="Move Program" 
+            title="Copy Program" 
             onSubmit={handleSubmit}
             shortcut={{ modifiers: ["cmd"], key: "return" }}
           />
@@ -171,10 +170,12 @@ export default function Command() {
         ))}
       </Form.Dropdown>
       
-      <Form.TextField 
-        id="folder" 
-        title="Program Folder Path" 
-        placeholder="/path/to/program/folder"
+      <Form.FilePicker
+        id="folder"
+        title="Program Folder"
+        allowMultipleSelection={false}
+        canChooseDirectories={true}
+        canChooseFiles={false}
       />
     </Form>
   );
