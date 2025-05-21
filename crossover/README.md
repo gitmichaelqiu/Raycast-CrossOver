@@ -1,3 +1,3 @@
 # CrossOver
 
-Control CrossOver from Raycast.
+Manage CrossOver bottles from Raycast.
