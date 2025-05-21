@@ -1,7 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import { homedir } from "os";
-import { readdir, stat } from "fs/promises";
 import { join } from "path";
 
 const execAsync = promisify(exec);
@@ -19,30 +18,27 @@ export async function runAppleScript(script: string): Promise<string> {
 
 export async function listBottles(): Promise<Bottle[]> {
   try {
-    // Get the bottles directory path
-    const bottlesDir = join(homedir(), "Library/Application Support/CrossOver/Bottles");
+    // Read CrossOver defaults
+    const { stdout } = await execAsync('defaults read com.codeweavers.CrossOver MostRecentCXFBMenuPlist');
     
-    // Read the bottles directory
-    const items = await readdir(bottlesDir);
-    
-    // Filter out non-directory items
-    const bottleNames = await Promise.all(
-      items.map(async (name) => {
-        const fullPath = join(bottlesDir, name);
-        const stats = await stat(fullPath);
-        return stats.isDirectory() ? name : null;
-      })
-    );
-    
-    // Remove null values and log found bottles
-    const validBottleNames = bottleNames.filter((name): name is string => name !== null);
-    console.log("Found bottles:", validBottleNames);
+    // Parse the output to find bottle names
+    const bottleNames: string[] = [];
+    const lines = stdout.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('Description = ')) {
+        const name = line.substring('Description = '.length).replace(/[";]/g, '').trim();
+        if (name) {
+          bottleNames.push(name);
+        }
+      }
+    }
 
-    // Convert to Bottle objects
-    const bottles: Bottle[] = validBottleNames.map(name => ({
+    // Create bottle objects
+    const bottles: Bottle[] = bottleNames.map(name => ({
       name,
-      path: join(bottlesDir, name),
-      modified: false // We'll need to check this separately
+      path: join(homedir(), "Library/Application Support/CrossOver/Bottles", name),
+      modified: false
     }));
 
     // Check which bottles are currently running using AppleScript
