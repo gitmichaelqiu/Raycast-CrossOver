@@ -9,7 +9,6 @@ const execAsync = promisify(exec);
 export interface Bottle {
   name: string;
   path: string;
-  modified: boolean;
   windowsVersion?: string;
 }
 
@@ -44,7 +43,6 @@ export async function listBottles(): Promise<Bottle[]> {
         return {
           name: entry.name,
           path: bottlePath,
-          modified: false,
           windowsVersion
         };
       }));
