@@ -1,6 +1,6 @@
 import React from "react";
-import { List, ActionPanel, Action, showToast, Toast, confirmAlert, Icon, open } from "@raycast/api";
-import { listBottles, Bottle } from "./utils";
+import { List, ActionPanel, Action, showToast, Toast, confirmAlert, Icon, open, Color } from "@raycast/api";
+import { listBottles, Bottle, changeGraphicsBackend, GraphicsBackend } from "./utils";
 import { useEffect, useState } from "react";
 import { rm } from "fs/promises";
 import { join } from "path";
@@ -50,6 +50,23 @@ export default function Command() {
     }
   }
 
+  async function handleGraphicsBackendChange(bottle: Bottle, backend: GraphicsBackend) {
+    try {
+      await changeGraphicsBackend(bottle.path, backend);
+      await showToast({
+        style: Toast.Style.Success,
+        title: "Graphics backend changed",
+        message: `Changed to ${backend} for ${bottle.name}`,
+      });
+    } catch (error) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to change graphics backend",
+        message: String(error),
+      });
+    }
+  }
+
   return (
     <List isLoading={isLoading}>
       {bottles.map((bottle) => (
@@ -68,6 +85,32 @@ export default function Command() {
                 shortcut={{ modifiers: ["cmd"], key: "return" }}
                 onAction={() => open(bottle.path)}
               />
+              <ActionPanel.Submenu
+                title="Change Graphics Backend"
+                icon={Icon.Monitor}
+                shortcut={{ modifiers: ["cmd"], key: "g" }}
+              >
+                <Action
+                  title="Auto"
+                  onAction={() => handleGraphicsBackendChange(bottle, "Auto")}
+                />
+                <Action
+                  title="D3DMetal"
+                  onAction={() => handleGraphicsBackendChange(bottle, "D3DMetal")}
+                />
+                <Action
+                  title="DXMT"
+                  onAction={() => handleGraphicsBackendChange(bottle, "DXMT")}
+                />
+                <Action
+                  title="DXVK"
+                  onAction={() => handleGraphicsBackendChange(bottle, "DXVK")}
+                />
+                <Action
+                  title="Wine"
+                  onAction={() => handleGraphicsBackendChange(bottle, "Wine")}
+                />
+              </ActionPanel.Submenu>
               <Action
                 title="Remove Bottle"
                 icon={Icon.Trash}
