@@ -20,14 +20,6 @@
       "file": "src/list-all-bottles.tsx"
     },
     {
-      "name": "restart-crossover",
-      "title": "Restart CrossOver",
-      "subtitle": "CrossOver",
-      "description": "Restart the CrossOver application.",
-      "mode": "no-view",
-      "file": "src/restart-crossover.tsx"
-    },
-    {
       "name": "copy-program-to-bottle",
       "title": "Copy Program to Bottle",
       "subtitle": "CrossOver",
